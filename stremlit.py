@@ -7,8 +7,8 @@ from langchain.schema import StrOutputParser
 st.title("🚀 Multi-Agent AI System for Mars Missions")
 
 # API Configuration (Should use environment variables in production)
-api_key = "8d0b990b41124205a2dbb6e9c3bee80e"
-base_url = "https://api.aimlapi.com/v1"
+api_key = "======="
+base_url = "======="
 
 # Initialize the LLM
 llm = ChatOpenAI(model="gpt-4", api_key=api_key, base_url=base_url)
