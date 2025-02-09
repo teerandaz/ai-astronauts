@@ -1,0 +1,211 @@
+import os
+from langchain.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain.schema import StrOutputParser
+api_key = "++++++"
+base_url = "+++++++"
+
+# Initialize the LLM
+llm = ChatOpenAI(model="gpt-4", api_key=api_key, base_url=base_url)
+
+# Utility function to create agents
+def create_agent(prompt_template: str, llm):
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+    chain = prompt | llm | StrOutputParser()
+    return chain
+
+# Spacecraft Coordinator
+class SpacecraftCoordinator:
+    def __init__(self, llm):
+        self.llm = llm
+        self.communication_agent = create_agent(
+            "You are the spacecraft communication agent. Relay this message from Earth to Mars: {message}",
+            llm
+        )
+        self.navigation_agent = create_agent(
+            "You are the spacecraft navigation agent. Based on the following position data: {position_data}, calculate the trajectory adjustment needed for Mars.",
+            llm
+        )
+
+    def route_to_agent(self, input_data):
+        routing_prompt = ChatPromptTemplate.from_template(
+            "Based on the input data: {input_data}, decide whether to activate the communication agent or the navigation agent."
+        )
+        routing_chain = routing_prompt | self.llm | StrOutputParser()
+        decision = routing_chain.invoke({"input_data": input_data}).lower()
+
+        if "communication" in decision:
+            return self.communication_agent.invoke({"message": input_data})
+        elif "navigation" in decision:
+            return self.navigation_agent.invoke({"position_data": input_data})
+        else:
+            return "No agent activated."
+
+    def send_message(self, recipient, message):
+        # Simulate sending a message to another coordinator
+        print(f"Spacecraft Coordinator sending message to {recipient.__class__.__name__}: {message}")
+        return recipient.receive_message(message)
+
+    def receive_message(self, message):
+        # Process incoming message and respond
+        print(f"Spacecraft Coordinator received message: {message}")
+        response = f"Spacecraft Coordinator responding to message: {message}"
+        return response
+
+# Lander Coordinator
+class LanderCoordinator:
+    def __init__(self, llm):
+        self.llm = llm
+        self.landing_agent = create_agent(
+            "You are the lander agent. Analyze the landing site based on the following data: {landing_data}. Determine if it's safe to land.",
+            llm
+        )
+        self.power_management_agent = create_agent(
+            "You are the power management agent. Monitor power levels: {power_levels}. Suggest actions to conserve energy.",
+            llm
+        )
+
+    def route_to_agent(self, input_data):
+        routing_prompt = ChatPromptTemplate.from_template(
+            "Based on the input data: {input_data}, decide whether to activate the landing agent or the power management agent."
+        )
+        routing_chain = routing_prompt | self.llm | StrOutputParser()
+        decision = routing_chain.invoke({"input_data": input_data}).lower()
+
+        if "landing" in decision:
+            return self.landing_agent.invoke({"landing_data": input_data})
+        elif "power" in decision:
+            return self.power_management_agent.invoke({"power_levels": input_data})
+        else:
+            return "No agent activated."
+
+    def send_message(self, recipient, message):
+        # Simulate sending a message to another coordinator
+        print(f"Lander Coordinator sending message to {recipient.__class__.__name__}: {message}")
+        return recipient.receive_message(message)
+
+    def receive_message(self, message):
+        # Process incoming message and respond
+        print(f"Lander Coordinator received message: {message}")
+        response = f"Lander Coordinator responding to message: {message}"
+        return response
+
+# Rover Coordinator
+class RoverCoordinator:
+    def __init__(self, llm):
+        self.llm = llm
+        self.object_detection_agent = create_agent(
+            "You are the object detection agent. Given height={height} and width={width}, identify the object in the image.",
+            llm
+        )
+        self.temperature_reader_agent = create_agent(
+            "You are the temperature reader agent. Read the current temperature: {temperature_data}. Provide analysis.",
+            llm
+        )
+        self.sample_collection_agent = create_agent(
+            "You are the sample collection agent. Collect a sample at location {location}. Describe the process using the following parameters: {sample_parameters}.",
+            llm
+        )
+
+    def route_to_agent(self, input_data):
+        routing_prompt = ChatPromptTemplate.from_template(
+            "Based on the input data: {input_data}, decide whether to activate the object detection agent, temperature reader agent, or sample collection agent."
+        )
+        routing_chain = routing_prompt | self.llm | StrOutputParser()
+        decision = routing_chain.invoke({"input_data": input_data}).lower()
+
+        if "object" in decision:
+            return self.object_detection_agent.invoke({"height": 100, "width": 50})
+        elif "temperature" in decision:
+            return self.temperature_reader_agent.invoke({"temperature_data": "-60°C"})
+        elif "sample" in decision:
+            return self.sample_collection_agent.invoke({
+                "location": "Rocky outcrop near landing site",
+                "sample_parameters": "Sample type: Rock. Sampling method: Hammer and chisel. Sample size: 500g."
+            })
+        else:
+            return "No agent activated."
+
+    def send_message(self, recipient, message):
+        # Simulate sending a message to another coordinator
+        print(f"Rover Coordinator sending message to {recipient.__class__.__name__}: {message}")
+        return recipient.receive_message(message)
+
+    def receive_message(self, message):
+        # Process incoming message and respond
+        print(f"Rover Coordinator received message: {message}")
+        response = f"Rover Coordinator responding to message: {message}"
+        return response
+
+# Main Mission Controller
+class MissionController:
+    def __init__(self, spacecraft_coordinator, lander_coordinator, rover_coordinator):
+        self.spacecraft_coordinator = spacecraft_coordinator
+        self.lander_coordinator = lander_coordinator
+        self.rover_coordinator = rover_coordinator
+
+    def execute_mission(self):
+        print("=== Spacecraft Phase ===")
+        earth_message = "Prepare for Mars approach. Adjust trajectory to align with Mars orbit."
+        spacecraft_response = self.spacecraft_coordinator.route_to_agent(earth_message)
+        print(f"Spacecraft response: {spacecraft_response}")
+
+        position_data = (
+            "Current position (Mars-centered inertial frame): X=10000km, Y=2000km, Z=500km. "
+            "Velocity: Vx=4.5km/s, Vy=1.2km/s, Vz=0.8km/s. "
+            "Trajectory deviation: 0.5° from target orbit. "
+            "Target orbit: Semi-major axis=3396km, Eccentricity=0.01, Inclination=25°."
+        )
+        spacecraft_trajectory = self.spacecraft_coordinator.route_to_agent(position_data)
+        print(f"Spacecraft trajectory adjustment: {spacecraft_trajectory}\n")
+
+        print("=== Lander Phase ===")
+        landing_data = (
+            "Landing site coordinates: Latitude: 18.4°N, Longitude: 77.5°E. "
+            "Surface slope: 2°. Soil composition: Basaltic rock with fine regolith. "
+            "Obstacles: Small rocks (<1m) within 10m radius. Weather: Wind speed <5 m/s."
+        )
+        landing_analysis = self.lander_coordinator.route_to_agent(landing_data)
+        print(f"Landing site analysis: {landing_analysis}")
+
+        power_levels = (
+            "Battery: 80% (capacity: 1000Wh), Solar Panel Efficiency: 95%. "
+            "Power consumption rate: 10W. Sunlight availability: 6 hours/day. "
+            "Estimated landing duration: 10 minutes."
+        )
+        power_management = self.lander_coordinator.route_to_agent(power_levels)
+        print(f"Power management: {power_management}\n")
+
+        print("=== Rover Phase ===")
+        if any(keyword in landing_analysis.lower() for keyword in ["safe", "suitable", "acceptable", "stable"]):
+            print("Lander has confirmed a safe landing. Activating rover...")
+            rover_input = (
+                "Rover detected an object with height=100cm and width=50cm. "
+                "Temperature reading: -60°C. Sample collection requested at Rocky outcrop near landing site."
+            )
+            rover_response = self.rover_coordinator.route_to_agent(rover_input)
+            print(f"Rover response: {rover_response}")
+
+            # Simulate inter-agent communication
+            message_to_lander = "Rover has completed sample collection. Prepare for data relay."
+            response_from_lander = self.rover_coordinator.send_message(self.lander_coordinator, message_to_lander)
+            print(f"Response from Lander Coordinator: {response_from_lander}")
+
+            message_to_spacecraft = "Lander confirms data relay readiness. Transmitting to Earth."
+            response_from_spacecraft = self.lander_coordinator.send_message(self.spacecraft_coordinator, message_to_spacecraft)
+            print(f"Response from Spacecraft Coordinator: {response_from_spacecraft}")
+        else:
+            print("Landing site is unsafe. Aborting rover deployment.")
+
+# Run the simulation
+if __name__ == "__main__":
+    # Initialize coordinators with their own LLMs
+    spacecraft_coordinator = SpacecraftCoordinator(llm)
+    lander_coordinator = LanderCoordinator(llm)
+    rover_coordinator = RoverCoordinator(llm)
+
+    # Initialize mission controller
+    mission_controller = MissionController(spacecraft_coordinator, lander_coordinator, rover_coordinator)
+
+    # Execute the mission
+    mission_controller.execute_mission()
